@@ -30,7 +30,26 @@
 \DeclareOption{titlepage}{
     \AtBeginDocument{
         \begin{titlepage}
-            \maketitle
+            \begin{center}
+               \vspace*{1cm}
+        
+               \textbf{Thesis Title}
+        
+               \vspace{0.5cm}
+                TDT4501 - Specialization Project
+                    
+               \vspace{1.5cm}
+        
+               \textbf{Mari Sofie Lerfaldet}
+        
+               \vfill
+                    
+               Computer Science\\
+               IDI - NTNU\\
+               Supervisor: Svein Erik Bratsberg\\
+               \today
+                    
+           \end{center}
         \end{titlepage}
     }
 }

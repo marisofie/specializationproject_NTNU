@@ -1,10 +1,7 @@
 \documentclass[british,titlepage]{ntnuthesis}
 
-\title{An NTNU Thesis \LaTeX{} Document Class}
-\shorttitle{An NTNU Thesis Document Class}
-\author{Mari Sofie Lerfaldet}
-\shortauthor{CoPCSE$@$NTNU}
-\date{\today}
+\shorttitle{INSERT TITLE}
+\shortauthor{M. S. Lerfaldet}
 
 \addbibresource{thesis.bib}
 
@@ -24,14 +21,17 @@
 \printglossary                    % Print glossary
 
 \input{chapters/1-introduction}
-\input{chapters/2-usage.tex}
-\input{chapters/3-structure.tex}
-\input{chapters/4-conclusion.tex}
+\input{chapters/2-background}
+\input{chapters/3-theory}
+\input{chapters/4-results}
+\input{chapters/5-discussion}
+\input{chapters/6-conclusion}
+
 
 \chapter*{\bibname}
 \printbibliography[heading=none]
 
-\input{chapters/papers.tex}
+%\input{chapters/papers.tex}
 
 \appendix
 \input{appendices/a-appendix.tex}
