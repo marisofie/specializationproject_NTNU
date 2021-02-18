@@ -2,3 +2,22 @@
 \label{chap:background}
 
 Research projects should always be based on previous research on the same and/or related topics. This should be described as a background to the thesis with adequate bibliographical references. If the material needed is too voluminous to fit nicely in the review part of the introduction, it can be presented in a separate background chapter.
+
+\textbf{STARTING HERE} 
+
+\emph{insert description of what background contains}
+\section{R-trees}
+R-trees was first presented in 1984 by Antonin Guttman\cite{r-tree} and was created to better handle indexing and retrieval of multi-dimensional data by their spatial locations. Previous solutions such as B+-trees are not equipped to handle data with multiple dimensions as they only support one-dimensional index structures \cite{ComparisonOfAdvancedTree}. 
+
+\subsection{The general R-tree}
+R-trees are structured as a hierarchy with a root node which points to lower nodes until you reach the leaf nodes which contain pointers to where the objects are stored. To be able to store multi-dimensional data objects R-trees use n-dimensional rectangles to index objects according to a certain space. These rectangles are known as \emph{Minimum Bounding Rectangles} (MBRs) and each root or intermediate node points to the MBRs that is contained within the MBR stored in the intermediate node. In the general R-tree, each intermediate node will contain distinct MBRs, even if they are present in several. The structure of the general R-tree is shown in (insert figure here). 
+
+Each non-leaf node is represented in the tree by (\emph{MBR},  \emph{p}) where \emph{MBR} is the minimum bounding rectangle which spatially contains all MBRs in the child node, and \emph{p} is a pointer to a child node. The leaf-nodes is represented by (\emph{MBR}, \emph{o}) where \emph{MBR} is the minimum bounding rectangle which spatially contains the object, and \emph{o} is the object identifier. 
+
+The height of the R-tree is at most \(log_mN-1\), when containing N index records. \emph{M} is the maximum number of entries that will fit in one node, and \emph{m} is the minimum number of entries in a node given by \(m <= M/2\).
+
+\subsubsection{Searching}
+Search in R-trees are done in a similar way as with B-trees. The search is done by creating a search rectangle \emph{SR}, and checking all entries in the root node that contains MBRs that overlap with SR. A further search is done by traversing the subtree of the matching entries until all leaf node MBRs that overlap with SR are found. In worst-case scenarios this will lead to the whole tree being searched before finding a match. 
+
+\subsection{R+-tree}
+The R+-tree is a variant of the general R-tree and was introduced in 1987 by Sellis, Roussopoulos and Faloutsos \cite{R+Tree}. It was developed to avoid overlapping MBRs in intermediate nodes. In the general R-tree each intermediate node contains MBRs which completely covers the MBRs in the child nodes. This can lead to all nodes having to be searched for a specific data object, which is not optimal. To reduce the number of intermediate nodes to be searched, the R+-tree splits the MBRs in intermediate nodes which point to leaf nodes. This is done so these MBRs do not overlap, and instead the MBRs at leaf level can be stored in multiple nodes. An important thing to note however is that the improved search performance of R+-trees has a negative effect on the space utilisation. This is however minimal if search performance is an important factor in the use of the R-tree index. 
