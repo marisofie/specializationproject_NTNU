@@ -1,17 +1,26 @@
 \chapter{Background and Motivation}
 \label{chap:background}
 
-Research projects should always be based on previous research on the same and/or related topics. This should be described as a background to the thesis with adequate bibliographical references. If the material needed is too voluminous to fit nicely in the review part of the introduction, it can be presented in a separate background chapter.
-
-\textbf{STARTING HERE} 
-
 \emph{insert description of what background contains}
-\section{R-trees}
-R-trees was first presented in 1984 by Antonin Guttman\cite{r-tree} and was created to better handle indexing and retrieval of multi-dimensional data by their spatial locations. Previous solutions such as B+-trees are not equipped to handle data with multiple dimensions as they only support one-dimensional index structures \cite{ComparisonOfAdvancedTree}. R-trees are structured as a hierarchy with a root node which points to lower nodes until you reach the leaf nodes which contain pointers to where the objects are stored. To be able to store multi-dimensional data objects R-trees use n-dimensional rectangles to index objects according to a certain space. These rectangles are known as \emph{Minimum Bounding Rectangles} (MBRs) and each root or intermediate node points to the MBRs that is contained within the MBR stored in the intermediate node. In the general R-tree, each intermediate node will contain distinct MBRs, even if they are present in several. The structure of the general R-tree is shown in (insert figure here). 
 
-Each non-leaf node is represented in the tree by (\emph{MBR},  \emph{p}) where \emph{MBR} is the minimum bounding rectangle which spatially contains all MBRs in the child node, and \emph{p} is a pointer to a child node. The leaf-nodes is represented by (\emph{MBR}, \emph{o}) where \emph{MBR} is the minimum bounding rectangle which spatially contains the object, and \emph{o} is the object identifier. 
+\section{R-trees}
+R-trees was first presented in 1984 by Antonin Guttman\cite{r-tree} and was created to better handle indexing and retrieval of multi-dimensional data by their spatial locations. Previous solutions such as B+-trees are not equipped to handle data with multiple dimensions as they only support one-dimensional index structures \cite{ComparisonOfAdvancedTree}. R-trees are structured as a hierarchy with a root node which points to lower nodes until you reach the leaf nodes which contain pointers to where the objects are stored. To be able to store multi-dimensional data objects R-trees use n-dimensional rectangles to index objects according to a certain space. These rectangles are known as \emph{Minimum Bounding Rectangles} (MBRs) and each root or intermediate node points to the MBRs that is contained within the MBR stored in the intermediate node. In the general R-tree, each intermediate node will contain distinct MBRs, even if they are present in several. Each non-leaf node is represented in the tree by (\emph{MBR},  \emph{p}) where \emph{MBR} is the minimum bounding rectangle which spatially contains all MBRs in the child node, and \emph{p} is a pointer to a child node. The leaf-nodes is represented by (\emph{MBR}, \emph{o}) where \emph{MBR} is the minimum bounding rectangle which spatially contains the object, and \emph{o} is the object identifier. An example of an R-Tree structure can be seen in Figure \ref{fig:RTree} and Figure \ref{fig:RtreeSpace}.
 
 The height of the R-tree is at most \(log_mN-1\), when containing N index records. \emph{M} is the maximum number of entries that will fit in one node, and \emph{m} is the minimum number of entries in a node given by \(m <= M/2\).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.4]{figures/RTree.pdf}
+    \caption{R-Tree index structure}
+    \label{fig:RTree}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.3]{figures/r-tree_space.pdf}
+    \caption{R-Tree space structure}
+    \label{fig:RtreeSpace}
+\end{figure}
 
 \subsection{Searching}
 Search in R-trees are done in a similar way as with B-trees. The search is done by creating a search rectangle \emph{SR}, and checking all entries in the root node that contains MBRs that overlap with SR. A further search is done by traversing the subtree of the matching entries until all leaf node MBRs that overlap with SR are found. In worst-case scenarios this will lead to the whole tree being searched before finding a match. 
@@ -23,7 +32,7 @@ Insertions in R-trees are done by inserting the new entry in a leaf node. This i
 Deletion is done by first finding the leaf node that contains the entry that is to be deleted. This is done by checking which parts of the tree overlaps with the entry, and when the correct leaf node is found, the entry is removed. After the removal, the remaining leaf node is checked to see if it has too few entries and will need to be readjusted. If this is the case, the tree will be restructured so that each leaf node meets the requirement of having a minimum of \emph{m} entries. 
 
 \subsection{Splitting}
-Splitting is a crucial part of the R-tree as it is used when inserting entries into full nodes and different methods can have a big impact on the search time. An important part of splitting is making as small rectangles as possible for the two new MBRs created by the split. This is to avoid searching the MBRs without results, which could be the case if the rectangles contain a lot of "empty" space which in turn could overlap with the search rectangle. The splitting methods \emph{Exhaustive Split}, \emph{Quadratic Split} and \emph{Linear Split} are presented by Guttman \cite{r-tree}. In his paper he finds that the linear split method is as good as the more expensive methods without affecting the search performance to an important extent.  
+Splitting is a crucial part of the R-tree as it is used when inserting entries into full nodes and different methods can have a big impact on the search time. An important part of splitting is making as small rectangles as possible for the two new MBRs created by the split. This is to avoid searching the MBRs without results, which could be the case if the rectangles contain a lot of "empty" space which in turn could overlap with the search rectangle. The splitting methods \emph{Exhaustive Split}, \emph{Quadratic Split} and \emph{Linear Split} are presented by Guttman \cite{r-tree}. In his paper he finds that the linear split method is as good as the more expensive methods without affecting the search performance to an important extent. The quadratic split method is however said to have better overall performance as stated by Beckmann, Kriegel, Schneider and Seeger\cite{R*-tree}.
 
 \subsubsection{Exhaustive Split}
 This method executes all possible splits and then chooses the split with the MBRs that cover the underlying rectangles with the least redundant space and smallest overlap. The exhaustive split is the optimal solution, however it is computationally heavy to perform and the number of possible splits is potentially very large.
@@ -36,3 +45,28 @@ The linear split is executed similarly as the quadratic split. However, instead 
 
 \section{R+-tree}
 The R+-tree is a variant of the general R-tree and was introduced in 1987 by Sellis, Roussopoulos and Faloutsos \cite{R+Tree}. It was developed to avoid overlapping MBRs in intermediate nodes. In the general R-tree each intermediate node contains MBRs which completely covers the MBRs in the child nodes. This can lead to all nodes having to be searched for a specific data object, which is not optimal. To reduce the number of intermediate nodes to be searched, the R+-tree splits the MBRs in intermediate nodes which point to leaf nodes. This is done so these MBRs do not overlap, and instead the MBRs at leaf level can be stored in multiple nodes. An important thing to note however is that the improved search performance of R+-trees has a negative effect on the space utilisation. This is however minimal if search performance is an important factor in the use of the R-tree index. 
+
+\section{R*-tree}
+The R*-tree is an extension of the general R-tree which is attractive as it supports both point and spatial data without increasing the implementation cost too much. This structure was presented in 1990 by Beckmann, Kriegel, Schneider and Seeger\cite{R*-tree}. In this paper they discuss the different parts that are essential for retrieval performance.\newline
+
+\textbf{The area covered by intermediate MBRs should be minimised}\newline
+The "empty" space covered by bounding rectangles should be minimized to avoid additional access paths when conducting a search. \newline
+
+\textbf{The overlap between intermediate MBRs should be minimised}\newline
+When minimizing the overlap, the possible access paths during a search is also minimized. \newline
+
+\textbf{The margin of intermediate MBRs should be minimised}\newline
+The margin of a bounding rectangle is the sum of the rectangle sides length. Minimization of the margin will lead to more quadratic shaped rectangles, which in turn are easier to place in space without causing overlap. This will again make it easier for the parent MBRs to reduce their size. \newline
+
+\textbf{Storage utilisation should be optimised}\newline
+With higher storage utilisation, the height of the tree will be reduced which will lead to lower query costs. \newline
+
+
+An important thing to note is that it is difficult to achieve both high storage utilisation when also minimising the area covered by each MBR and their overlap. This is because the shape of the rectangles and the number of entries in each node needs to be more relaxed. Reducing the margin will however most likely lead to better storage utilisation. \newline
+
+In order to improve the retrieval performance, the R*-tree focuses on the insertion of new rectangles. When choosing the subtree for insertion, the structure focuses on finding the path wich leads to the least need for \emph{overlap} enlargement to include the new entry. This is in contrast to the general R-tree where it decides based on the least need for area enlargement in total. If a leaf node is full the algorithm uses reinsertion if it is the first overflow at that particular level in the tree. Reinsertion is coslty, but gives better query performance than node splitting. If a reinsertion has already been used on a level, a splitting method is applied. The splitting method consists of deciding a split axis among all dimensions and choosing the division of entries that lead to the least overlap between the resulting MBRs.
+
+\subsection{Dynamic Hilbert R-trees}
+Hilbert-curve is a space filling curve, shown to achieve the best clustering when compared to Z-order and Gray-code curve \cite{HilbertRTree}. The Hilbert R-tree is constructed to behave like a R-tree on search, and a B*-tree during splitting on insertion. This is done by using a method called \emph{2D-c}, which sorts the data rectangles based on the 2d-hilbert value of their centers. Leaf nodes contains the same as with a regular R-tree (MBR, o), while non-leaf nodes contain addiotional information about the \emph{Larges Hilbert Value} (LHV) as (MBR, p, LHV). LHV is the largest hilbert value found in the MBRs enclosed by the non-leaf node's MBR. With insertion, the Dynamic Hilbert R-tree uses a method like is done in B*-trees. In regular B-trees splitting a node is done when it overflows, and two nodes is created from the overflowed node. In B*-trees the splitting is delayed by trying to send entries to sibling nodes when the original node is overflowed. The number of siblings can be chosen as \emph{s}, and when all sibling nodes are full, the split will be conducted by creating \emph{s+1} nodes to handle the overflow entry. The best tradeoff for choosing siblings is shown to be 3-to-4 splitting, which entails having three siblings. This gives the best insertion speed, which decrease with the increase of siblings, while maintaining a good performance, which increase with the number of siblings. 
+
+In the original presentation of the Dynamic Hilbert R-tree it is shown that it outperforms R*-trees on response time by up 28\%\cite{HilbertRTree}. It has however later been discovered that the Dynamic Hilbert R-tree is vulnerable to large objects performance-wise. In addition the proximity is not kept to a satisfying degree by the Hilbert curve as the space dimensionality increaes, which leads to MBRs overlapping more in internal tree nodes\cite{RTreesTheoryApplications}.
