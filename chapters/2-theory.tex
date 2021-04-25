@@ -1,4 +1,4 @@
-\chapter{Theory}
+\chapter{Background}
 \label{chap:background}
 
 In this chapter important theory that is the basis of my implementation is presented. R-trees are covered in detail, in addition to different bulk-insertion methods. LSM-trees are also described with challenges that come with its implementation. 
@@ -91,40 +91,60 @@ An important thing to note is that it is difficult to achieve both high storage 
 
 In order to improve the retrieval performance, the R*-tree focuses on the insertion of new rectangles. When choosing the subtree for insertion, the structure focuses on finding the path which leads to the least need for \emph{overlap} enlargement to include the new entry. This is in contrast to the general R-tree where it decides based on the least need for area enlargement in total. If a leaf node is full the algorithm uses reinsertion if it is the first time a node overflow occurs at that particular level in the tree. Reinsertion is costly, but gives better query performance than node splitting. If a reinsertion has already been used on a level, a splitting method is applied. The splitting method consists of deciding a split axis among all dimensions and choosing the division of entries that lead to the least overlap between the resulting MBRs.
 
-\subsection{Dynamic Hilbert R-trees}
-Hilbert-curve is a space filling curve, shown to achieve the best clustering when compared to Z-order and Gray-code curve \cite{HilbertRTree}. The Hilbert R-tree is constructed to behave like an R-tree on search, and a B*-tree during splitting on insertion. This is done by using a method called \emph{2D-c}, which sorts the data rectangles based on the 2d-hilbert value of their centers. Leaf nodes contains the same as with a regular R-tree (MBR, o), while non-leaf nodes contain additional information about the \emph{Larges Hilbert Value} (LHV) as (MBR, p, LHV). LHV is the largest hilbert value found in the MBRs enclosed by the non-leaf node's MBR. With insertion, the Dynamic Hilbert R-tree uses a method like is done in B*-trees. In regular B-trees splitting a node is done when it overflows, and two nodes is created from the overflowed node. In B*-trees the splitting is delayed by trying to send entries to sibling nodes when the original node is overflowed. The number of siblings can be chosen as \emph{s}, and when all sibling nodes are full, the split will be conducted by creating \emph{s+1} nodes to handle the overflow entry. The best tradeoff for choosing siblings is shown to be 3-to-4 splitting, which entails having three siblings. This gives the best insertion speed, which decrease with the increase of siblings, while maintaining a good performance, which increase with the number of siblings. 
+\section{Space-Filling Curves}
+Space-Filling Curves (SFCs) were discovered over a hundred years ago by Peano\cite{peano} and  later developed by others such as Hilbert\cite{hilbert}. SFCs are used for mapping data from a multi-dimensional space to a one-dimensional space by imposing a linear order on them, while maintaining the position of the data in the space. There are two different objectives when using space-filling curves\cite{IrregularSpace}. \emph{Locality-preserving}, which keeps points that are close in proximity in the multi-dimensional space close also in the one-dimensional space. \emph{Order-preserving} maintains the order from a specific dimension in the one-dimensional space. The locality-preserving SFCs are good to use in applications that are cluster-based, while the order-preserving SFCs are suited for applications which use some type of sorting, ordering or indexing. \newline
 
-In the original presentation of the Dynamic Hilbert R-tree it is shown that it outperforms R*-trees on response time by up 28\%\cite{HilbertRTree}. It has however later been discovered that the Dynamic Hilbert R-tree is vulnerable to large objects performance-wise. In addition the proximity is not kept to a satisfying degree by the Hilbert curve as the space dimensionality increases, which leads to MBRs overlapping more in internal tree nodes\cite{RTreesTheoryApplications}.
+The motivation for using space-filling curves in computer-related applications is the continuous growth of multi-dimensional data generated such as multimedia and geographical data. In order to store and query this data efficiently it is crucial that it is possible to order the items so that it can be located in an index structure. The most mentioned space-filling curves with regard to R-trees are the \emph{Z-order curve} and the \emph{Hilbert curve}. \newline
 
-\textbf{Skal dette være et annet sted? Kanskje ikke egentlig. Les over igjen sammen med resten i denne seksjonen.}
-
-\section{Packing R-trees}
-The general packing method for R-trees was introduced in 1985\cite{DirectSpatialSearch}. In this method the rectangles in the dataset are sorted according to their center's x-coordinate. The rectangles are then packed into $k$ groups of $n$ rectangles each (except possibly the last one). Next, the MBR for each group is found and a pointer is set to the page that stores that group. Finally, the MBRs are packed recursively bottom-up in the manner explained above until the root node is created. 
-
-\subsection{Sort-Tile-Recursive}
-The Sort-Tile-Recursive (STR) method is a way of bulk-loading multi-dimensional data into R-trees and was introduced in 1997 by Leutenegger et al.\cite{STR}. For data with a dimension of $d=2$ the data is first sorted by their surrounding rectangle's x-coordinates. The x-coordinate is set to be the center for each rectangle. Further, STR uses a method called \emph{tiling} which divides the space into $S = \sqrt{r/M}$ vertical slices, where $r$ is the number of objects and $M$ is the maximum number of objects that fit in a node. Each slice has a certain amount of rectangles so that $\sqrt{r/M}$ nodes can be packed. The number of leaf nodes $P$ is set to $\lceil{r/M}\rceil$ as this gives the needed number of nodes to fit all the objects. Each slice is then filled with a partition of size $S * M$ consecutive rectangles from the sorted list. It is important to notice that the last slice might contain fewer rectangles, as it is not guaranteed that the number of rectangles will fill the vertical slices fully. The last slice must however have a minimum of $m$ rectangles. Further, the rectangles for each slice are sorted internally by their y-coordinate and $M$ rectangles at a time are packed into nodes. To complete the tree $M$ consecutive nodes are grouped together and put into a parent node. The last parent node might contain fewer than $M$ elements, but must have more than $m$. This is continued in a bottom-up manner until the root node is created. The Sort-Tile-Recursive method is also applicable for dimensions larger than two. \newline
-
-It has been shown that the STR method have performed better than other bulk-loading methods when the data is slightly skewed or have an uniform distribution. For highly skewed data, the performance gap between STR and the Hilbert packing method is quite similar\cite{STR}. The advantage with using the STR method is that in general there are less overlap between rectangles, which leads to fewer disk accesses as fewer elements of the tree needs to be searched. The difference in MBR overlap between the traditional R-tree, the improved R*-tree and the Sort-Tile-Recursive packed R-tree is shown in Figure \ref{fig:STRTree}.
+The Z-order curve structure for the first three iterations can be seen in Figure \ref{fig:zorder}. Z-order is often also referred to as Morton Code, Peano curve, bit-interleaving or bit-shuffling\cite{performanceSFC}\cite{fractKeyRetri}. The advantage of Z-order is that it is simple and not too costly to implement, in comparison to the Hilbert curve which is both more complex and has a higher computational cost. The structure of the Hilbert curve is shown in Figure \ref{fig:hilbertcurve}, and shows that it rotates its structure through the iterations. It has been shown that the Hilbert curve obtains a better clustering than Z-ordering\cite{AnalysisHilbert}\cite{fractKeyRetri}, which is desirable as it in turn may require less disk accesses during search. 
 
 \begin{figure}[ht]
-    \centering
-    \includegraphics[scale=0.7]{figures/STR.png}
-    \caption{MBRs of leaf nodes for R-tree, R*-tree and STR Packed R-tre\cite{RTreesTheoryApplications}}
-    \label{fig:STRTree}
+     \centering
+     \begin{subfigure}{0.2\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{figures/spaceFilling_z_1.pdf}
+         \caption{Iteration 1}
+     \end{subfigure}
+     \hfill
+      \begin{subfigure}{0.2\textwidth}
+     \centering
+     \includegraphics[width=\textwidth]{figures/spaceFilling_z_2.pdf}
+     \caption{Iteration 2}
+     \end{subfigure}
+    \hfill
+     \begin{subfigure}{0.2\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{figures/spaceFilling_z_3.pdf}
+         \caption{Iteration 3}
+     \end{subfigure}
+        \caption{Z-order curve, first three iterations}
+        \label{fig:zorder}
 \end{figure}
 
+\begin{figure}[ht]
+     \centering
+     \begin{subfigure}{0.2\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{figures/spaceFilling_h_1.pdf}
+         \caption{Iteration 1}
+     \end{subfigure}
+     \hfill
+      \begin{subfigure}{0.2\textwidth}
+     \centering
+     \includegraphics[width=\textwidth]{figures/spaceFilling_h_2.pdf}
+     \caption{Iteration 2}
+     \end{subfigure}
+    \hfill
+     \begin{subfigure}{0.2\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{figures/spaceFilling_h_3.pdf}
+         \caption{Iteration 3}
+     \end{subfigure}
+        \caption{Hilbert curve, first three iterations}
+        \label{fig:hilbertcurve}
+\end{figure}
 
-\textbf{SKRIV OM HILBERT PACKING METHOD, SIDEN DEN ER NEVNT I Sort-Tile-Recursive}
-
-\subsection{Small-Tree-Large-Tree Bulk-Insertion}
-The Small-Tree-Large-Tree (STLT) bulk-insertion technique was presented in 1998 by L. Chen et al\cite{STLT} and is the first approach where bulk-insertion is used to update an existing R-tree, instead of creating an R-tree from scratch. Important aspects to conducting insertions into an existing R-tree is to make sure that the down-time is low so that queries can be conducted and that the query performance is not degraded to a large extent. In addition, it will reduce the insertion time as one does not have to build the entire R-tree from scratch with every insertion. To achieve bulk-insertion into an existing index structure, the STLT technique is designed for skewed data, i.e. data that are located in the same region. When new data is added an R-tree index structure is created from it, which is called a small tree. A suitable location in the existing R-tree, also called the large tree, is found for insertion and the small tree is inserted here. By having skewed data, it can be ensured that the data inserted belongs to a certain location in the existing R-tree. In addition, down-time is reduced as only a small portion of the large tree is locked during the insertion.\newline
-
-The Small-Tree-Large-Tree method was also developed further in 1999 by introducing a Generalized Bulk-Insertion strategy (GBI)\cite{GBI}. GBI was introduced as the STLT technique only performs well with skewed data, while other distributions lead to overlapping MBRs which again have a degrading effect on the index structure and query performance. In the GBI approach, the data to be inserted is first clustered by using k-means. Small R-trees are then created from these clusters for a STLT insertion process. Outliers are inserted one by one. The advantage of GBI is that it is better suited for different types of data distributions, in addition to having query performance which is comparable to the traditional one-by-one approach proposed by Guttman\cite{r-tree}.
-
-\subsection{Bulk-Insertion by Seeded Clustering}
-Bulk-Insertion by Seeded Clustering was introduced by T. Lee et al in 2003 to maintain an efficient index structure for R-trees when bulk-insertion is utilized\cite{SeededClustering}. The general idea is to create input R-trees from clusters and inserting them into a single large, target R-tree. The seeded R-tree is first created from the top $k$ levels of the target R-tree, and this structure is used to classify data items into clusters. An input R-tree is then created from each of these clusters, which is shown to create less overlap between MBRs during bulk insertion. The insertion process is done by inserting the input trees into a node at height $h$ in the target R-tree. This height is equal to the height of the input R-tree, as this is required to maintain that all leaf nodes are at the same level. Another important part of the insertion is to make sure that the intermediate target node created during insertion does not suffer from node underflow, which is when the input root node contains fewer entries than $m$. To handle this issue, the entries of the root node of the input R-tree are reinserted into the target node. If the root node contains a number of entries higher than $m$, the input tree is directly inserted into the target node.\newline
-
-Finally, a repacking method is used if the root node from the input tree and the target node have many overlapping entries. This is done to maintain a good query performance. The method is done by repacking the overlapping entries from the target node with the input node. This is done in a bottom-up manner by first repacking the children and then repeating the process upwards. Bulk-insertion by seeded clustering has shown to outperform other bulk-insertion methods such as the Generalized Bulk-Insertion (GBI) with regard to both insertion and query performance. In addition, it has proven to have better query performance than R-trees with insertion one-by-one\cite{SeededClustering}.
+The main challenge when mapping multi-dimensional data is maintaining the order of the objects across dimensions. In an ideal space-filling curve the ordering of the data should be the same in every dimension, this is however often not possible to achieve. The use of the application is therefore an important aspect of choosing the best suited space-filling curve. The Z-order curve is the ordering that gives the best mapping across dimensions, when the number of dimensions is low. With the increase of dimensions, the Hilbert curve gets more optimal\cite{IrregularSpace}. This means that with a high level of dimensions, where all dimensions are equally important, the Hilbert curve should be chosen as it is able to maintain a better level of fairness across dimensions. If dimensions can be prioritized, or if there exists a lower level of dimensions, the Z-order curve will be the better choice.
 
 \section{The Log-Structured Merge-Tree}
 The \emph{Log-Structured Merge-tree} was introduced in 1996 by O'Neil et al\cite{LSMTree}. It is a write-optimized storage structure created to handle big amounts of insertions, while still being able to search for entries by index. The structure of LSM-trees consists of multiple levels. The top level is in memory, known as $C_0$ where entries are stored in a tree by index. The lower levels $C_1, C_2 ... C_n$ are stored on disk and store its entries in a B-tree like index structure. Instead of inserting one entry at a time, the LSM-tree loads entries to disk in batches by using a method called \emph{rolling merge}. The in-memory component $C_0$ is smaller than the lower components, while the lower components grow in size the further down they are in the chain. When $C_0$ reaches a treshold close to its maximum size, entries are sent to merge with $C_1$ while a batch of entries from $C_1$ are put in a buffer. The block containing the old entries from $C_1$ before merge is called the \emph{emptying} block, while the new leaf nodes merged from $C_0$ is called the \emph{filling} block. The filling block is stored on a new disk page, so the old entries are stored in case recovery is needed. This means that write operations are done in-place in $C_0$, while they are done out-of-place in the lower components. The structure of LSM-trees with two levels can be seen in Figure \ref{fig:LSMTree}, while the rolling merge process can be seen in Figure \ref{fig:LSMMerge}. 

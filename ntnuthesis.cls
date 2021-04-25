@@ -33,7 +33,7 @@
             \begin{center}
                \vspace*{1cm}
         
-               \textbf{Thesis Title}
+               \textbf{Rectangle-Structured Merge Tree: A write-optimized R-tree}
         
                \vspace{0.5cm}
                 TDT4501 - Specialization Project
