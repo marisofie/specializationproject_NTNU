@@ -41,18 +41,45 @@ The use of a space-filling curve in order to create the RSM-tree is crucial in o
 
 \subsection{Z-ordering}
 \label{sect:zordering}
-To calculate the Z-values of each object, the $x$ and $y$ coordinates of the object's MBR is found. These coordinates can be chosen as the outer corner of a rectangle or as the rectangle's center. In my implementation, the coordinates will be calculated from the center. These coordinates will then be represented as their binary value. In order to calculate the binary representation of the two coordinates together, their individual values are interleaved (\textbf{må kanskje finne en referanse her)}. An example of this process is shown in Figure \ref{fig:bitInterleaving}. \textbf{forklar mer om hva som skjer i bildet.}
+To calculate the Z-values of each object, the $x$ and $y$ coordinates of the object's MBR is found. These coordinates can be chosen as the outer corner of a rectangle or as the rectangle's center. In my implementation, the coordinates will be calculated from the center. These coordinates will then be represented as their binary value. In order to calculate the binary representation of the two coordinates together, their individual values are interleaved. Interleaving is done by extending $x$ and $y$ of length $n$ to length $2n$, where each value from $x$ is put in odd positions and each value from $y$ is put in even positions\cite{interleave}. This can also be done in an opposite manner. An example of this process is shown in Figure \ref{fig:bitInterleaving}, inspired by \cite{zorder_figure}. The space is considered for integers between 0 and 7, but only showing the first quadrant in Figure \ref{fig:zspace}. The interleaving process of this first quadrant is demonstrated in Figure \ref{fig:zinterleave}, where the $x$ coordinate is set at even positions while the $y$ coordinate is set at odd positions. By finding the binary representation of a position, we can use this information to compare objects when ordering them. 
 
+\begin{figure}[ht]
+     \centering
+     \begin{subfigure}{0.45\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{figures/zorder_process_graph.pdf}
+         \caption{Z-order mapping in space}
+         \label{fig:zspace}
+     \end{subfigure}
+     \hfill
+      \begin{subfigure}{0.45\textwidth}
+     \centering
+     \includegraphics[width=\textwidth]{figures/zorder_process_interleaving.pdf}
+     \caption{Interleaving process}
+     \label{fig:zinterleave}
+     \end{subfigure}
+    \hfill
+    \caption{Z-order calculation process}
+    \label{fig:bitInterleaving}
+\end{figure}
 
 \section{Merging}
 \label{sect:RSM-Merging}
-The merging technqiue for the RSM-tree is based on both construction of R-trees from scratch, in addition to using bulk-insertion into existing trees. From the in-memory component $C_0$, a portion of $N$ objects are taken at a time to create an R-tree from scratch. This R-tree is then stored at the lower level $C_2$. $N$ is chosen to be a number so that $n$ nodes can be filled with a with a capacity greater than $m$ and smaller than $M$, where $m$ is the minimum number of objects in a node and $M$ is the maximum number of objects. This is done to gurantee that the R-tree structure is valid by avoiding situations where node underflow occurs while still leaving room for additional objects when further merging is done to the lower level. As the objects in $C_0$ are already sequentially ordered by their placements, the trees in $C_1$ are also possible to order. In the optimal scenario, the R-trees in $C_1$ will have no overlap with each other. This can be verified by looking at the overlap between their root nodes. As this might be hard to guarantee in a real-life scenario, this is a challenge that needs to be further investigated when the implementation is created.  \textbf{kanskje noe mer her om hvordan dette skal håndteres, sjekk med SE} \newline
+The merging technqiue for the RSM-tree is based on both construction of R-trees from scratch, in addition to using bulk-insertion into existing trees. In my first implementation there will be three levels that each have some important characteristics. 
 
-The merging from $C_1$ to the lowest component $C_2$ is done by having an existing R-tree index in the lowest level. When data is ready to be merged from $C_1$, a whole R-tree is bulk-inserted into the main R-tree in $C_3$.
+\subsection{Level $C_0$: In-memory component}
+The in-memory component consists of single objects, ordered by the z-value of the center of each object's MBR. As in the regular LSM-tree, objects are sent to the lower level, $C_1$, when the total number of objects reach a certain threshold. 
 
-\textbf{Her må det inne noe om hvilken bulk-insertion metode du skal bruke og hvorfor..}
+\subsection{Level $C_1$: Upper-level storage component}
+In an ideal solution, all elements coming from $C_0$ would be indexed in the same R-tree. But, as the trees in $C_1$ are constructed to be bulk-loaded into the main R-tree in level $C_2$, there are some considerations that need to be discussed. One important factor is the distribution of the data. If we were to construct R-trees based on their location in space (e.g., divide the space into the four squares given in Figure \ref{fig:RSMTree}), we could end up with having to restructure the main R-tree in $C_2$ if the data is skewed. This is due to the fact that we cannot insert R-trees into the same position in the main R-tree without requiring restructuring. This entails node splitting when overflow occurs, which in turn will lead to uneven depths in the different nodes, which leads to restructuring of the whole tree. This is due to the constraint that all leaf nodes must be at the same level of the tree. Another aspect is the area in space covered by each R-tree in $C_1$. If we simply create an R-tree from all objects coming from $C_0$, we could end up with intermediate nodes that cover a lot of empty space. This is because the objects might not be close to each other. When these R-trees are bulk-inserted into the main R-tree, there is a higher chance for overlapping MBR's in intermediate nodes, as they each might cover a large area. \newline
 
-\textbf{Må snakke om potensiell overlapp av MBRs! Hvordan håndtere dette? Burde du ha firkantede MBRs? Se på R*-tree}
+One way of handling these issues can be to use seeded clustering\cite{SeededClustering} and to look for outliers. By maintaining a clustering scheme, based on the top $k$ levels of the main R-tree, we can adjust the clustering to the data distribution. To implement this, the RSM-tree will have a seeded R-tree stored in $C_1$, which will be updated at an evenly rate. The data that comes from $C_0$ will then be assigned to clusters, and an R-tree per cluster will be created. By doing this, the main R-tree will most likely avoid too many overlapping MBR's in intermediate nodes, in addition to reducing the amount of node splits. If there are any outliers, these will be inserted into the main R-tree one-by-one. The construction of the R-trees in $C_1$ will follow the structure of the general R-tree proposed by Guttman\cite{r-tree}. If time allows, the Sort-Tile-Recursive packing method\cite{STR} might also be implemented as all objects for the R-trees are known before the construction.
+
+\subsection{Level $C_2$: Lower-level storage component}
+In the lowest level, $C_2$, the main R-tree will be stored. The R-tree is dynamically updated by bulk-insertions from $C_1$. As the trees coming from the level above are clustered according to the top $k$ levels of the main tree, we reduce the need for node splits. If node underflow should occur however, it is handled in the same way as described by bulk-insertion by seeded clustering\cite{SeededClustering}. If the incoming tree suffers from underflow, the elements in the incoming tree is reinserted at the target node in the main tree. Another important aspect is the repacking method, which is done if the insertion creates many overlapping entries. If a node overflows, the quadratic split method\cite{r-tree} is used. An important part of using seeded clustering is to find out how often a seeded tree should be generated and sent to level $C_1$. This is something that needs to be tested during the implementation, as generating it too often will use unnecessary resources, while if not updated often enough will lead to bad distribution for the incoming R-trees. 
 
 \subsection{Merge policies}
 \textbf{Skriv noe om de forskjellige variantene du kan prøve ut, hva som er hovedkonseptet...}
+
+\section{Insertion, Updates, Deletions}
+Insertion, updates and deletions will be conducted in a similar manner as in the traditional LSM-tree. When an entry is inserted, an MBR is created for the object as well as calculating its z-order value. This element is then inserted in $C_0$, in the correct position according to its z-order value. The rest of the insertion process will be as described in Section \ref{sect:RSM-Merging}. Deletions are done by either deleting the object directly, if it is present in $C_0$. If this is not the case, a deletion block is created and sent through the levels. A deletion block will consist of the same elements as a regular node, but will have an additional entry indicating that it is meant to be deleted. This is then used in $C_1$ and $C_2$ to search for overlapping MBR's to identify the object to delete. Updates are handled by first deleting an entry, followed by inserting a new one. 
