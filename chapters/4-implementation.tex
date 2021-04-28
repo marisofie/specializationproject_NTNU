@@ -5,6 +5,7 @@ In this thesis I aim to create an LSM-structured implementation of R-trees, whic
 \section{Overview}
 In order to implement an R-tree index while having a LSM-tree structure, there are some important design choices that need to be evaluated. The first is the ordering of the data, as R-trees are used for multi-dimensional data, while LSM-trees are not. In order to do this, the use of space-filling curves are needed, such as Z-order curve or Hilbert curve. In my implementation, the main ordering technique will be Z-order curve, but both curves might be tested. Another important aspect is how to merge the data from the upper levels to the lower levels. To do this I have chosen to use bulk-insertion methods which looks at loading smaller R-trees into larger ones. By doing this, the costly operation of creating R-trees from scratch will not be needed with every merge.\newline
 
+\noindent
 Lastly, the choice of merge policies is important. As inspired from Dostoevsky\cite{Dostoevsky}, I will try different combinations of tiering and leveling policies as explained in Section \ref{Dostoevsky}. This is done in order to tune the write and search performance as needed.  
 
 \section{Structure}
@@ -26,6 +27,7 @@ The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. 
         \label{fig:RSMTree}
 \end{figure}
 
+\noindent
 The nodes in the RSM-tree are structured as shown in Figure \ref{fig:nodeRSM}. The first value is the Z-order value calculated from the objects minimum bounding rectangle (MBR), while the MBR is the rectangle containing the object. The last element \emph{pointer}, points to either an intermediate node's children nodes or an object identifier. The calculation of the z-order values is explained in Section \ref{sect:zordering}. 
 
 \begin{figure}[ht]
@@ -73,13 +75,34 @@ The in-memory component consists of single objects, ordered by the z-value of th
 \subsection{Level $C_1$: Upper-level storage component}
 In an ideal solution, all elements coming from $C_0$ would be indexed in the same R-tree. But, as the trees in $C_1$ are constructed to be bulk-loaded into the main R-tree in level $C_2$, there are some considerations that need to be discussed. One important factor is the distribution of the data. If we were to construct R-trees based on their location in space (e.g., divide the space into the four squares given in Figure \ref{fig:RSMTree}), we could end up with having to restructure the main R-tree in $C_2$ if the data is skewed. This is due to the fact that we cannot insert R-trees into the same position in the main R-tree without requiring restructuring. This entails node splitting when overflow occurs, which in turn will lead to uneven depths in the different nodes, which leads to restructuring of the whole tree. This is due to the constraint that all leaf nodes must be at the same level of the tree. Another aspect is the area in space covered by each R-tree in $C_1$. If we simply create an R-tree from all objects coming from $C_0$, we could end up with intermediate nodes that cover a lot of empty space. This is because the objects might not be close to each other. When these R-trees are bulk-inserted into the main R-tree, there is a higher chance for overlapping MBR's in intermediate nodes, as they each might cover a large area. \newline
 
+\noindent
 One way of handling these issues can be to use seeded clustering\cite{SeededClustering} and to look for outliers. By maintaining a clustering scheme, based on the top $k$ levels of the main R-tree, we can adjust the clustering to the data distribution. To implement this, the RSM-tree will have a seeded R-tree stored in $C_1$, which will be updated at an evenly rate. The data that comes from $C_0$ will then be assigned to clusters, and an R-tree per cluster will be created. By doing this, the main R-tree will most likely avoid too many overlapping MBR's in intermediate nodes, in addition to reducing the amount of node splits. If there are any outliers, these will be inserted into the main R-tree one-by-one. The construction of the R-trees in $C_1$ will follow the structure of the general R-tree proposed by Guttman\cite{r-tree}. If time allows, the Sort-Tile-Recursive packing method\cite{STR} might also be implemented as all objects for the R-trees are known before the construction.
 
 \subsection{Level $C_2$: Lower-level storage component}
 In the lowest level, $C_2$, the main R-tree will be stored. The R-tree is dynamically updated by bulk-insertions from $C_1$. As the trees coming from the level above are clustered according to the top $k$ levels of the main tree, we reduce the need for node splits. If node underflow should occur however, it is handled in the same way as described by bulk-insertion by seeded clustering\cite{SeededClustering}. If the incoming tree suffers from underflow, the elements in the incoming tree is reinserted at the target node in the main tree. Another important aspect is the repacking method, which is done if the insertion creates many overlapping entries. If a node overflows, the quadratic split method\cite{r-tree} is used. An important part of using seeded clustering is to find out how often a seeded tree should be generated and sent to level $C_1$. This is something that needs to be tested during the implementation, as generating it too often will use unnecessary resources, while if not updated often enough will lead to bad distribution for the incoming R-trees. 
 
 \subsection{Merge policies}
-\textbf{Skriv noe om de forskjellige variantene du kan prøve ut, hva som er hovedkonseptet...}
+As the goal for the RSM-tree is to be write-optimized, the main merge policy used is \emph{Lazy Leveling}\cite{Dostoevsky}. By having most of the merge performed at the lowest level, we can take advantage of having a higher write-throughput as well as maintaining adequate lookup and storage costs, as explained in Section \ref{Dostoevsky}. In the first implementation, the RSM-tree will consist of three levels, where the lowest uses the leveling merge policy, while the second level uses the tiering merge policy. If time allows, it would be interesting to implement different combinations of the two merge policies, by using the implementation in \emph{Fluid LSM-trees}.  
+
 
 \section{Insertion, Updates, Deletions}
-Insertion, updates and deletions will be conducted in a similar manner as in the traditional LSM-tree. When an entry is inserted, an MBR is created for the object as well as calculating its z-order value. This element is then inserted in $C_0$, in the correct position according to its z-order value. The rest of the insertion process will be as described in Section \ref{sect:RSM-Merging}. Deletions are done by either deleting the object directly, if it is present in $C_0$. If this is not the case, a deletion block is created and sent through the levels. A deletion block will consist of the same elements as a regular node, but will have an additional entry indicating that it is meant to be deleted. This is then used in $C_1$ and $C_2$ to search for overlapping MBR's to identify the object to delete. Updates are handled by first deleting an entry, followed by inserting a new one. 
+Insertion, updates and deletions will be conducted in a similar manner as in the traditional LSM-tree. When an entry is inserted, an MBR is created for the object as well as calculating its z-order value. This element is then inserted in $C_0$, in the correct position according to its z-order value. The rest of the insertion process will be as described in Section \ref{sect:RSM-Merging}. Deletions are done by either deleting the object directly, if it is present in $C_0$, or creating a deletion block which is sent through the levels. A deletion block will consist of the same elements as a regular node, but will have an additional entry indicating that it is meant to be deleted. This is then used in $C_1$ and $C_2$ to search for overlapping MBR's to identify the object to delete. Updates are handled by first deleting an entry, followed by inserting a new one. 
+
+\section{Evaluation}
+In order to evaluate the RSM-tree, there are different metrics that needs to be adjusted and compared. The main metrics and parameters that will be looked at are:\newline
+
+\noindent
+\textbf{Write Throughput} is maybe the most important metric to test for the RSM-tree, as it is the ultimate goal that the write throughput is higher than in the general R-tree. This will be tested with different data distributions to see if the RSM-tree favours skew or uniform data. \newline
+
+\noindent
+\textbf{I/O operations} is another important measure to measure write- and read amplification. For read amplification this will be tested by executing queries, as it is important that the RSM-tree maintains a certain query performance. The write amplification will be measured during insertion, by counting number of blocks written to, including its final storage block in the lowest level. \newline
+
+\noindent
+\textbf{Tree fanout} should be looked at with regard to performance. This is decided by setting the maximum number of entries a node can contain. It is important to find a setting so that the tree is not too deep, which adds to number of paths accessed during a search, and not too wide, which will cause a search operation to sequentially search most of the entries. \newline
+
+\noindent
+\textbf{Seeded clustering} should be tested with different parameters. This entails both how often the seeded tree should be created from the main R-tree, and how many levels the seeded tree should be made of. 
+
+\textbf{Component size} of the different levels $C_0$, $C_1$ and $C_2$ needs to be tested. If the component sizes are too big, the entries to be merged may be many, which in turn can make the process slower. If the component is too small however, the merge procedure might be executed more often than needed. The sizes will also impact the search performance, both because the search might have to run through many levels, and because the search might have to search through many trees in $C_1$.
+
+After the best parameters are found for the node size, the seeded tree and the component sizes, the performance of the RSM-tree will be compared to the general R-tree create by Guttman\cite{r-tree}. 
