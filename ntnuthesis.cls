@@ -33,7 +33,7 @@
             \begin{center}
                \vspace*{1cm}
         
-               \textbf{Rectangle-Structured Merge Tree: A write-optimized multi-dimensional index structure}
+               \textbf{Rectangle-Structured Merge Tree: A write-optimized index structure for multi-dimensional data}
         
                \vspace{0.5cm}
                 TDT4501 - Specialization Project
