@@ -31,23 +31,29 @@
     \AtBeginDocument{
         \begin{titlepage}
             \begin{center}
-               \vspace*{1cm}
-        
-               \textbf{Rectangle-Structured Merge Tree: A write-optimized index structure for multi-dimensional data}
-        
+            
+               \vspace{10cm}
+                
+                \Large        
+               \textbf{Rectangle-Structured Merge Tree: A write-optimized index structure for spatial data}
+                \normalsize
+                
                \vspace{0.5cm}
                 TDT4501 - Specialization Project
                     
-               \vspace{1.5cm}
+               \vspace{1cm}
         
                \textbf{Mari Sofie Lerfaldet}
         
                \vfill
-                    
+               
+               Supervisor: Svein Erik Bratsberg\\
                Computer Science\\
                IDI - NTNU\\
-               Supervisor: Svein Erik Bratsberg\\
                \today
+               \vspace{0.5cm}
+               
+               \includegraphics[width=5cm]{figures/ntnu_logo1.pdf}
                     
            \end{center}
         \end{titlepage}
