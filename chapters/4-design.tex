@@ -1,12 +1,12 @@
 \chapter{Design Solution}
-
-In this thesis we aim to create an LSM-structured implementation of R-trees, which in turn will be write-optimized. To be able to handle a high workload of write operations without compromising query performance, a bulk-insertion technique such as GBI\cite{GBI} or Seeded Clustering\cite{SeededClustering} will be used to make sure that the index structure is not degraded too much. In addition, the use of such techniques will hopefully also generate better storage utilisation which is needed to avoid unnecessary search operations. We have chosen to call the design solution a \emph{Rectangle-Structured Merge Tree} or RSM-Tree.
+\label{chap:design}
+In this project we aim to create an LSM-structured implementation of R-trees, which in turn will be write-optimized. To be able to handle a high workload of write operations without compromising query performance, a bulk-insertion technique such as GBI\cite{GBI} or Seeded Clustering\cite{SeededClustering} will be used to make sure that the index structure is not degraded too much. In addition, the use of such techniques will hopefully also generate better storage utilisation which is needed to avoid unnecessary search operations. We have chosen to call the design solution a \emph{Rectangle-Structured Merge Tree} or RSM-Tree.
 
 \section{Overview}
-In order to implement an R-tree index while having a LSM-tree structure, there are some important design choices that need to be evaluated. The first is the ordering of the data, as R-trees are used for multi-dimensional data, while LSM-trees are not. In order to do this, the use of space-filling curves are needed, such as Z-order curve or Hilbert curve. In this design solution, the main ordering technique will be the Z-order curve, but both curves might be tested. Another important aspect is how to merge the data from the upper levels to the lower levels. To do this we have chosen to use bulk-insertion methods which looks at loading smaller R-trees into larger ones. By doing this, the costly operation of creating R-trees from scratch will not be needed with every merge.\newline
+In order to implement an R-tree index while having a LSM-tree structure, there are some important design choices that need to be evaluated. The first is the ordering of the data, as R-trees are used for multidimensional data, while LSM-trees are not. In order to do this, the use of space-filling curves are needed, such as Z-order curve or Hilbert curve. In this design solution, the main ordering technique will be the Z-order curve, but both curves might be tested. Another important aspect is how to merge the data from the upper levels to the lower levels. To do this we have chosen to use bulk-insertion methods which looks at loading smaller R-trees into larger ones. By doing this, the costly operation of creating R-trees from scratch will not be needed with every merge.\newline
 
 \noindent
-Lastly, the choice of merge policies is important. Inspired from Dostoevsky\cite{Dostoevsky}, we hope to try different combinations of tiering and leveling policies as explained in Section \ref{Dostoevsky}. In the first implementation, \emph{Lazy Leveling} will be used.  
+Lastly, the choice of merge policies is important. Inspired from Dostoevsky\cite{Dostoevsky}, we hope to try different combinations of tiering and leveling policies as explained in Section \ref{Dostoevsky}. In the first design solution, \emph{Lazy Leveling} will be used.  
 
 \section{Structure}
 The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. The in-memory component $C_0$ stores each data object in their own MBR, given as $A, B, ..., F$. These are sequentially ordered by the chosen space-filling curve. This is done because it is crucial that the items are sequentially ordered when performing search operations in LSM-trees. In addition to this, a sequential structure is beneficial when merging the data to the lower levels, as will be further explained in Section \ref{sect:RSM-Merging}. In the second level $C_1$, the MBRs will be merged together to create R-trees from scratch, given as $R_2, R_3, R_4, R_5$. The lowest level $C_2$, is structured as the main R-tree, where trees from $C_2$ will be bulk-inserted into the correct positions in the main R-tree.  
@@ -28,7 +28,7 @@ The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. 
 \end{figure}
 
 \noindent
-The nodes in the RSM-tree are structured as shown in Figure \ref{fig:nodeRSM}. The first value is the Z-order value calculated from the objects minimum bounding rectangle (MBR), while the MBR is the rectangle containing the object. The last element, \emph{pointer}, points to either an intermediate node's children nodes or an object identifier. The calculation of the z-order values is explained in Section \ref{sect:zordering}. 
+The nodes in the RSM-tree are structured as shown in Figure \ref{fig:nodeRSM}. The first value is the Z-order value calculated from the objects minimum bounding rectangle (MBR), while the MBR is the rectangle containing the object. The last element, \emph{pointer}, points to either an intermediate node's child nodes or an object identifier. The calculation of the z-order values is explained in Section \ref{sect:zordering}. 
 
 \begin{figure}[ht]
     \centering
@@ -88,6 +88,7 @@ As the goal for the RSM-tree is to be write-optimized, the main merge policy use
 \section{Insertion, Updates, Deletions}
 Insertion, updates and deletions will be conducted in a similar manner as in the traditional LSM-tree. When an entry is inserted, an MBR is created for the object as well as calculating its z-order value. This element is then inserted into $C_0$, in the correct position according to its z-order value. The rest of the insertion process will be as described in Section \ref{sect:RSM-Merging}. Deletions are done by either deleting the object directly, if it is present in $C_0$, or creating a deletion block which is sent through the levels. A deletion block will consist of the same elements as a regular node, but will have an additional entry indicating that it is meant to be deleted. This is then used in $C_1$ and $C_2$ to search for overlapping MBR's to identify the object to delete. Updates are handled by first deleting an entry, followed by inserting a new one. 
 
+
 \section{Evaluation}
 In order to evaluate the RSM-tree, there are different metrics that needs to be adjusted and compared. The main metrics and parameters that will be looked at are:\newline
 
@@ -108,3 +109,9 @@ In order to evaluate the RSM-tree, there are different metrics that needs to be 
 
 \noindent
 After the most efficient parameters are found for the node size, the seeded tree and the component sizes, the performance of the RSM-tree will be compared to the general R-tree create by Guttman\cite{r-tree}. 
+
+\subsection{Test Data}
+There are many aspects to take into consideration when using test data to eventually evaluate the implementation of the design solution. The first is that the results should be unbiased and that the test data should consist of different distributions to uncover how the design performs in different situations. Second, it is beneficial to use both synthetic data and real-world data for testing. Synthetic data is adjustable, and we can therefore create both skew and uniform distributions. This is not as easily manufactured when using real-world data. It is however still important to also test the design solution with a dataset from the real world, to show how it performs with neutral data. With neutral data, we mean data that has not been created for a specific outcome, and is a way to show that results given are not only generated by creating data that ensures positive numbers.\newline
+
+\noindent
+In order to ensure unbiased and varied data, different synthetic datasets should be created. These should included skewed, slightly-skewed and uniform data. The data should also be created with a different number of dimensions, as the space-filling curves are a large part of the design solution and can be highly impacted by the dimensionality. In addition, a real-world dataset should be included. An example of this could be either sensor data capturing weather conditions or device usage based on geographical locations. Lastly, an important aspect of the design solution is how well query performance is, as it is crucial that the RSM-tree is still able to handle queries, even though the goal is to increase write-performance. It is therefore important to have test data that is possible to query across dimensions and locations in space. 

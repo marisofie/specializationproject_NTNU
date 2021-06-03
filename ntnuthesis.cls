@@ -35,7 +35,7 @@
                \vspace{10cm}
                 
                 \Large        
-               \textbf{Rectangle-Structured Merge Tree: A write-optimized index structure for spatial data}
+               \textbf{Rectangle-Structured Merge Tree: A write-optimized index structure for multidimensional data}
                 \normalsize
                 
                \vspace{0.5cm}

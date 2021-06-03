@@ -1,4 +1,5 @@
 \chapter{Introduction}
+\label{chap:intro}
 As the use of technological solutions is increasing, more and more data is generated each day. A special type of data is spatial data, which contains a geographical component. Spatial data is – amongst others – created by sensors tracking weather conditions, users tagging their location on social media and shipment companies tracking packages. As this type of data contains multiple dimensions, traditional index structures such as B-trees are not capable of storing the data in a sufficient manner. A solution to storing multidimensional data is \emph{R-trees}\cite{r-tree}. This index structure stores objects by encapsulating them in rectangles. By doing this, we can use multiple dimensions to identify an object instead of using a single index, such as in B-trees. \newline
 
 \noindent
@@ -11,11 +12,11 @@ An important part of the LSM-tree is the different merging policies. The policie
 Another significant aspect of LSM-trees is the need to impose an ordering on the data. The reason that ordering is important is because LSM-trees write the data sequentially. As R-trees handle multidimensional objects, they require an ordering scheme to sort the data by their location in space. A challenging part of ordering spatial data is that it can consist of many dimensions. It is hard to find an ordering that is valid across these dimensions, and it only gets more difficult as the number of dimensions increase. An important part of this project is therefore to explore different ordering schemes and find one that will be able to order the objects in a sufficient way.
 
 \section{Project Goal}
-The goal of this project is to create an index structure that is write-optimized and handles spatial data. In order to do this, the different aspects of LSM-trees and R-trees will be explored in order to create a design solution that incorporates R-trees into the secondary memory components in an LSM-tree. As there are many different parameters in LSM-trees and R-trees that can be adjusted, the main focus will be on merging policies and the creation and insertion into R-trees. 
+The goal of this project is to create an index structure that is write-optimized and handles spatial data. In order to do this, the different aspects of LSM-trees and R-trees will be explored in order to create a design solution that incorporates R-trees into the secondary memory components in a LSM-tree. As there are many different parameters in LSM-trees and R-trees that can be adjusted, the main focus will be on merging policies and the creation and insertion into R-trees. 
 
 \subsection{Research Questions}
 \begin{itemize}
-    \item Is it possible to implement an R-tree index structure into an LSM-tree?
+    \item Is it possible to implement an R-tree index structure into a LSM-tree?
     \item How can we perform merge-like operations to the R-trees in the LSM-tree?
 \end{itemize}
 

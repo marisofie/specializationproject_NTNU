@@ -1,5 +1,15 @@
 \chapter{Conclusion}
+In this project we have looked at the possibility of implementing the R-tree structure into LSM-trees. By taking advantage of the LSM-tree's ability to improve write-performance and the R-tree's ability to handle spatial data, we have presented a possible design solution which is a storage structure that is write-optimized and handles multidimensional data. The following research questions, presented in Chapter \ref{chap:intro} have been explored: 
 
-The conclusion chapter is usually quite short – a paragraph or two– mainly summarising what was achieved in the project. It should answertheclaimpart of the introduction. It should also say something about whatcomes next (‘future work’)..
+\begin{itemize}
+    \item Is it possible to implement an R-tree index structure into a LSM-tree?
+    \item How can we perform merge-like operations to the R-trees in the LSM-tree?
+\end{itemize}\newline
 
-\section{Further Work}
+\noindent
+Since we have not implemented the design solution, it is not possible to say definitively that we have found a way to implement an R-tree index structure into a LSM-tree. We have however found a design that explains how the merging process of LSM-trees can be obtained with R-trees by using bulk-insertion methods such as seeded clustering. In addition, the use of \emph{lazy leveling} avoids merging elements until we reach the lowest level of the RSM-tree, which removes unnecessary merges and makes the handling of data in the upper-storage component $C_1$ a simple construction of R-trees from scratch. Laslty, by using an ordering technique such as Z-order, we have ensured that the RSM-tree can order the data objects, which is a necessary component of LSM-trees.  
+
+
+\section{Future Work}
+An important future step is to implement the design solution. This has to be done to evaluate if the design solution is viable and to test how well it performs when compared to the original R-tree. Other aspects that could be looked into is parallelization of the RSM-tree. This is an important part of handling Big Data, as storage structures often are divided on multiple servers. Included in this is the use of snapshots, concurrency methods such as locking, recovery methods and maintaing consistency across partitions. 
+
