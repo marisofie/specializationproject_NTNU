@@ -4,7 +4,7 @@ In this project we have looked at the possibility of implementing the R-tree str
 \begin{itemize}
     \item Is it possible to implement an R-tree index structure into a LSM-tree?
     \item How can we perform merge-like operations to the R-trees in the LSM-tree?
-\end{itemize}\newline
+\end{itemize}
 
 \noindent
 Since we have not implemented the design solution, it is not possible to say definitively that we have found a way to implement an R-tree index structure into a LSM-tree. We have however found a design that explains how the merging process of LSM-trees can be obtained with R-trees by using bulk-insertion methods such as seeded clustering. In addition, the use of \emph{lazy leveling} avoids merging elements until we reach the lowest level of the RSM-tree, which removes unnecessary merges and makes the handling of data in the upper-storage component $C_1$ a simple construction of R-trees from scratch. Laslty, by using an ordering technique such as Z-order, we have ensured that the RSM-tree can order the data objects, which is a necessary component of LSM-trees.  
