@@ -9,7 +9,7 @@ In order to implement an R-tree index while having a LSM-tree structure, there a
 Lastly, the choice of merge policies is important. Inspired from Dostoevsky\cite{Dostoevsky}, we hope to try different combinations of tiering and leveling policies as explained in Section \ref{Dostoevsky}. In the first design solution, \emph{Lazy Leveling} will be used.  
 
 \section{Structure}
-The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. The in-memory component $C_0$ stores each data object in their own MBR, given as $A, B, ..., F$. These are sequentially ordered by the chosen space-filling curve. This is done because it is crucial that the items are sequentially ordered when performing search operations in LSM-trees. In addition to this, a sequential structure is beneficial when merging the data to the lower levels, as will be further explained in Section \ref{sect:RSM-Merging}. In the second level $C_1$, the MBRs will be merged together to create R-trees from scratch, given as $R_2, R_3, R_4, R_5$. The lowest level $C_2$, is structured as the main R-tree, where trees from $C_2$ will be bulk-inserted into the correct positions in the main R-tree.  
+The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. The in-memory component $C_0$ stores each data object in their own MBR, given as $A, B, ..., F$. These are sequentially ordered by the chosen space-filling curve. This is done because it is crucial that the items are sequentially ordered when performing search operations in LSM-trees. In addition to this, a sequential structure is beneficial when merging the data to the lower levels, as will be further explained in Section \ref{sect:RSM-Merging}. In the second level $C_1$, the MBRs will be merged together to create R-trees from scratch, given as $R_2, R_3, R_4, R_5$. The lowest level $C_2$, is structured as the main R-tree, where trees from $C_1$ will be bulk-inserted into the correct positions in the main R-tree.  
 \begin{figure}[ht]
      \centering
      \begin{subfigure}{0.45\textwidth}
@@ -28,7 +28,7 @@ The general structure of the RSM-tree is presented in Figure \ref{fig:RSMTree}. 
 \end{figure}
 
 \noindent
-The nodes in the RSM-tree are structured as shown in Figure \ref{fig:nodeRSM}. The first value is the Z-order value calculated from the objects minimum bounding rectangle (MBR), while the MBR is the rectangle containing the object. The last element, \emph{pointer}, points to either an intermediate node's child nodes or an object identifier. The calculation of the Z-order values is explained in Section \ref{sect:zordering}. 
+The nodes in the RSM-tree are structured as shown in Figure \ref{fig:nodeRSM}. The first value is the Z-order value calculated from the object's minimum bounding rectangle (MBR), while the MBR is the rectangle containing the object. The last element, \emph{pointer}, points to either an intermediate node's child nodes or an object identifier. The calculation of the Z-order values is explained in Section \ref{sect:zordering}. 
 
 \begin{figure}[ht]
     \centering
